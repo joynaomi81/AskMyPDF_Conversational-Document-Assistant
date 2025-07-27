@@ -58,7 +58,7 @@ if st.session_state.db:
 
 # Display chat history
 if st.session_state.chat_history:
-    st.markdown("## 🧠 Chat History")
+    st.markdown("##  Chat History")
     for i, (q, a) in enumerate(reversed(st.session_state.chat_history), 1):
-        st.markdown(f"**Question{i}:** {q}")
-        st.markdown(f"**Answer{i}:** {a}")
+        st.markdown(f"**Q{i}:** {q}")
+        st.markdown(f"**A{i}:** {a}")
