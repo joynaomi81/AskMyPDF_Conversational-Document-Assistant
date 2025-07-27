@@ -24,27 +24,41 @@ def extract_text_from_pdf(file):
 st.set_page_config(page_title="PDF Q&A with Gemini", layout="wide")
 st.title("📄 AskMyPDF")
 
+# Initialize session state to store chat history and DB
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "db" not in st.session_state:
+    st.session_state.db = None
+
+# Upload PDF
 uploaded_file = st.file_uploader("Upload your PDF", type="pdf")
 
-if uploaded_file:
-    
+if uploaded_file and st.session_state.db is None:
     docs = extract_text_from_pdf(uploaded_file)
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = text_splitter.split_documents(docs)
 
-    # Embeddings & Vector DB
+    # Create Vector DB
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    db = FAISS.from_documents(chunks, embeddings)
+    st.session_state.db = FAISS.from_documents(chunks, embeddings)
 
-    # User input for Q&A
-    question = st.text_input("Ask a question about the PDF:")
+# Question input box
+question = st.text_input("Ask a question about the PDF:")
 
-    if question:
-        docs_similar = db.similarity_search(question)
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-        chain = load_qa_chain(llm, chain_type="stuff")
-        result = chain.run(input_documents=docs_similar, question=question)
+# Generate answer when a question is asked
+if question and st.session_state.db:
+    docs_similar = st.session_state.db.similarity_search(question)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+    chain = load_qa_chain(llm, chain_type="stuff")
+    result = chain.run(input_documents=docs_similar, question=question)
 
-        # Print Output
-        st.markdown("### 🤖 Answer:")
-        st.write(result)
+    # Save Q&A to history
+    st.session_state.chat_history.append((question, result))
+
+# Display chat history
+if st.session_state.chat_history:
+    st.markdown("### 💬 Chat History")
+    for q, a in reversed(st.session_state.chat_history):  # reverse to show latest on top
+        st.markdown(f"**🧑‍💻 You:** {q}")
+        st.markdown(f"**🤖 Gemini:** {a}")
+        st.markdown("---")
