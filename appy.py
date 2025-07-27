@@ -1,83 +1,50 @@
 import os
 import streamlit as st
-import tempfile
-
-from langchain.document_loaders import PyPDFLoader
+from PyPDF2 import PdfReader
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
 from langchain.embeddings import GoogleGenerativeAIEmbeddings
-from langchain.chat_models import ChatGoogleGenerativeAI
-from langchain.chains import RetrievalQA
+from langchain.vectorstores import FAISS
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.chains.question_answering import load_qa_chain
 
-# ✅ Load API key from secrets.toml
+# ✅ Gemini API key
 os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
-# ✅ Initialize Gemini model and embeddings
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
-embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+# ✅ Function to extract text from PDF
+def extract_text_from_pdf(file):
+    pdf = PdfReader(file)
+    text = ""
+    for page in pdf.pages:
+        if page.extract_text():
+            text += page.extract_text()
+    return [Document(page_content=text)]
 
-# ✅ Streamlit UI setup
-st.set_page_config(page_title="📘 Conversational Tutor (Gemini)", layout="wide")
-st.title("📘 Conversational Tutor AI (Gemini 1.5 Flash)")
+# ✅ Streamlit UI
+st.set_page_config(page_title="PDF Q&A with Gemini", layout="wide")
+st.title("📄 Chat with your PDF using Gemini")
 
-uploaded_file = st.file_uploader("📄 Upload a PDF file", type=["pdf"])
+uploaded_file = st.file_uploader("Upload your PDF", type="pdf")
 
 if uploaded_file:
-    # Save temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        tmp_file.write(uploaded_file.read())
-        tmp_path = tmp_file.name
+    # Extract and split the PDF text
+    docs = extract_text_from_pdf(uploaded_file)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    chunks = text_splitter.split_documents(docs)
 
-    st.success("✅ File uploaded successfully!")
+    # Embeddings & Vector DB
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    db = FAISS.from_documents(chunks, embeddings)
 
-    # Load & split
-    loader = PyPDFLoader(tmp_path)
-    pages = loader.load()
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = text_splitter.split_documents(pages)
-
-    # Vectorstore
-    db = FAISS.from_documents(chunks, embedding_model)
-    retriever = db.as_retriever()
-    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-
-    st.markdown("---")
-    st.subheader("🧠 Ask Any Question")
-    question = st.text_input("Enter your question:")
+    # User input for Q&A
+    question = st.text_input("Ask a question about the PDF:")
 
     if question:
-        result = qa_chain.run(question)
-        st.markdown(f"**Answer:** {result}")
+        docs_similar = db.similarity_search(question)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+        chain = load_qa_chain(llm, chain_type="stuff")
+        result = chain.run(input_documents=docs_similar, question=question)
 
-    st.markdown("---")
-    st.subheader("📝 Generate Quiz Questions")
-    if st.button("Generate Questions"):
-        prompt = f"""
-        You are a tutor. Based on the content below, generate 3 comprehension questions.
-
-        Content:
-        {chunks[0].page_content[:2000]}
-        """
-        response = llm.invoke(prompt)
-        st.markdown(response.content)
-
-    st.markdown("---")
-    st.subheader("🎯 Grade My Answer")
-    input_question = st.text_input("Question to grade:")
-    input_answer = st.text_area("Your answer:")
-
-    if st.button("Grade My Answer"):
-        grading_prompt = f"""
-        Grade the student's answer based on the question and the original content.
-
-        Question: {input_question}
-        Student's Answer: {input_answer}
-        Content: {chunks[0].page_content[:2000]}
-
-        Provide a score over 10 and a short explanation.
-        """
-        grade_result = llm.invoke(grading_prompt)
-        st.markdown(grade_result.content)
-
-    os.remove(tmp_path)
+        # Output answer
+        st.markdown("### 🤖 Answer:")
+        st.write(result)
