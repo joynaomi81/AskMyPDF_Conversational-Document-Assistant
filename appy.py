@@ -21,7 +21,7 @@ def extract_text_from_pdf(file):
     return [Document(page_content=text)]
 
 # Streamlit UI
-st.set_page_config(page_title="PDF Q&A with Gemini", layout="wide")
+st.set_page_config(page_title="PDF Q&A ", layout="wide")
 st.title("📄 AskMyPDF")
 
 # Initialize session state
