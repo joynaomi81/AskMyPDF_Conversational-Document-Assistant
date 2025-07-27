@@ -1,9 +1,6 @@
 streamlit
+PyPDF2
 langchain
 faiss-cpu
-PyPDF2
-pdfminer.six
-unstructured
 google-generativeai
-tiktoken
-pypdf
+langchain-google-genai
