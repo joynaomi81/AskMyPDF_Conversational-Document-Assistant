@@ -56,8 +56,9 @@ if st.session_state.db:
 
         st.session_state.chat_history.append((question, result))
 
-# Print Q&A history
-    for q, a in st.session_state.chat_history:
-        st.markdown("**Question:** " + q)
-        st.markdown("**Answer:** " + a)
-        st.markdown("---")
+# Display chat history
+if st.session_state.chat_history:
+    st.markdown("## 🧠 Chat History")
+    for i, (q, a) in enumerate(reversed(st.session_state.chat_history), 1):
+        st.markdown(f"**Question{i}:** {question}")
+        st.markdown(f"**Answer{i}:** {answer}")
