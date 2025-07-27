@@ -22,7 +22,7 @@ def extract_text_from_pdf(file):
 
 # Streamlit UI
 st.set_page_config(page_title="PDF Q&A ", layout="wide")
-st.title("📄 AskMyPDF")
+st.title("📄 AskMyPDF – Conversational Document Assistant")
 
 # Initialize session state
 if "db" not in st.session_state:
