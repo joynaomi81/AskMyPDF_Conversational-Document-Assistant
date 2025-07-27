@@ -40,7 +40,7 @@ if uploaded_file:
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     db = FAISS.from_documents(chunks, embeddings)
     st.session_state.db = db
-    st.success(" PDF processed. You can now ask questions.")
+    st.success(" PDF Uploaded.")
 
 # Ask a question if DB is ready
 if st.session_state.db:
