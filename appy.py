@@ -45,7 +45,7 @@ if uploaded_file:
 # Ask a question if DB is ready
 if st.session_state.db:
     with st.form("question_form"):
-        question = st.text_input("Ask a question about the PDF:")
+        question = st.text_input("Ask any question about the material:")
         submitted = st.form_submit_button("Submit")
 
     if submitted and question:
