@@ -1,0 +1,7 @@
+streamlit
+langchain
+faiss-cpu
+PyPDF2
+google-generativeai
+pdfminer.six
+unstructured
